@@ -132,6 +132,18 @@ void SimpleHydrodynamics::Configure(const Entity &_entity,
     return;
   }
 
+  std::string topicName = "Vessel";
+  if (_sdf->HasElement("topic_name")){
+      topicName = _sdf->Get<std::string>("topic_name");
+  }
+
+  std::string linpubtopic{"model/" + topicName + "/world_vel/linear"};         
+  this->linear_pub = node.Advertise<ignition::msgs::Vector3d>(linpubtopic);
+  std::string angpubtopic{"model/" + topicName + "/world_vel/angular"};         
+  this->angular_pub = node.Advertise<ignition::msgs::Vector3d>(angpubtopic);
+  std::string posepubtopic{"model/" + topicName + "/world_pose"};
+  this->pose_pub = node.Advertise<ignition::msgs::Pose>(posepubtopic);
+
   this->dataPtr->link.EnableVelocityChecks(_ecm);
   this->dataPtr->link.EnableAccelerationChecks(_ecm);
 
@@ -242,6 +254,33 @@ void SimpleHydrodynamics::PreUpdate(
   auto localLinearVel    = comPose->Rot().Inverse() * (*worldLinearVel);
   auto localAngularAccel = comPose->Rot().Inverse() * (*worldAngularAccel);
   auto localLinearAccel  = comPose->Rot().Inverse() * (*worldLinearAccel);
+
+  ignition::msgs::Pose pose;
+  auto pose_lin = new ignition::msgs::Vector3d;
+  auto pose_qua = new ignition::msgs::Quaternion;
+  pose_lin->set_x(comPose->X());
+  pose_lin->set_y(comPose->Y());
+  pose_lin->set_z(comPose->Z());
+  pose.set_allocated_position(pose_lin);
+  auto pose_rot = comPose->Rot();
+  pose_qua->set_x(pose_rot.X());
+  pose_qua->set_y(pose_rot.Y());
+  pose_qua->set_z(pose_rot.Z());
+  pose_qua->set_w(pose_rot.W());
+  pose.set_allocated_orientation(pose_qua);
+  pose_pub.Publish(pose);
+
+  ignition::msgs::Vector3d lin_vel;
+  lin_vel.set_x(worldLinearVel->X());
+  lin_vel.set_y(worldLinearVel->Y());
+  lin_vel.set_z(worldLinearVel->Z());
+  linear_pub.Publish(lin_vel);
+
+  ignition::msgs::Vector3d ang_vel;
+  ang_vel.set_x(worldAngularVel->X());
+  ang_vel.set_y(worldAngularVel->Y());
+  ang_vel.set_z(worldAngularVel->Z());
+  angular_pub.Publish(ang_vel);
 
   stateDot << localLinearAccel.X(), localLinearAccel.Y(), localLinearAccel.Z(),
    localAngularAccel.X(), localAngularAccel.Y(), localAngularAccel.Z();

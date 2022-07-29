@@ -303,6 +303,13 @@ void MulticopterVelocityControl::Configure(const Entity &_entity,
   ignmsg << "MulticopterVelocityControl subscribing to Boolean messages on ["
          << enableTopic << "]" << std::endl;
 
+	std::string linpubtopic{this->robotNamespace + "/world_vel/linear"};         
+  this->linear_pub = node.Advertise<ignition::msgs::Vector3d>(linpubtopic);
+  std::string angpubtopic{this->robotNamespace + "/world_vel/angular"};         
+  this->angular_pub = node.Advertise<ignition::msgs::Vector3d>(angpubtopic);
+  std::string posepubtopic{this->robotNamespace + "/world_pose"};
+  this->pose_pub = node.Advertise<ignition::msgs::Pose>(posepubtopic);
+
   // Create the Actuators component to take control of rotor speeds
   this->rotorVelocitiesMsg.mutable_velocity()->Resize(
       this->rotorVelocities.size(), 0);
@@ -433,6 +440,31 @@ void MulticopterVelocityControl::PreUpdate(
       return true;
     });
   }
+
+  ignition::msgs::Pose pose;
+  ignition::msgs::Vector3d lin_vel, ang_vel;
+  auto pose_lin = new ignition::msgs::Vector3d;
+  auto pose_qua = new ignition::msgs::Quaternion;
+  Eigen::Vector3d pose_t = frameData->pose.translation();
+  pose_lin->set_x(pose_t(0));
+  pose_lin->set_y(pose_t(1));
+  pose_lin->set_z(pose_t(2));
+  pose.set_allocated_position(pose_lin);
+  Eigen::Quaterniond pose_r(frameData->pose.rotation());
+  pose_qua->set_x(pose_r.x());
+  pose_qua->set_y(pose_r.y());
+  pose_qua->set_z(pose_r.z());
+  pose_qua->set_w(pose_r.w());
+  pose.set_allocated_orientation(pose_qua);
+  lin_vel.set_x(frameData->linearVelocityWorld(0));
+  lin_vel.set_y(frameData->linearVelocityWorld(1));
+  lin_vel.set_z(frameData->linearVelocityWorld(2));
+  ang_vel.set_x(frameData->angularVelocityBody(0));
+  ang_vel.set_y(frameData->angularVelocityBody(1));
+  ang_vel.set_z(frameData->angularVelocityBody(2));
+  pose_pub.Publish(pose);
+  linear_pub.Publish(lin_vel);
+  angular_pub.Publish(ang_vel);
 
   this->velocityController->CalculateRotorVelocities(*frameData,
                                                      payloadMass,

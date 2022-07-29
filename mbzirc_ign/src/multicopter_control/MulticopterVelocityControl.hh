@@ -212,6 +212,7 @@ namespace systems
 
     /// \brief Ignition communication node.
     private: transport::Node node;
+    private: transport::Node::Publisher pose_pub, linear_pub, angular_pub;
 
     /// \brief Holds the rotor velocities computed by the controller. This is
     /// here so we don't need to allocate memory every simulation step.

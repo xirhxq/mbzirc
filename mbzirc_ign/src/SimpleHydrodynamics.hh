@@ -18,6 +18,7 @@
 #define IGNITION_GAZEBO_SYSTEMS_SIMPLE_HYDRODYNAMICS_HH_
 
 #include <memory>
+#include <ignition/transport/Node.hh>
 #include <ignition/gazebo/System.hh>
 #include <sdf/sdf.hh>
 
@@ -119,6 +120,10 @@ namespace systems
 
     /// \brief Private data pointer.
     private: std::unique_ptr<SimpleHydrodynamicsPrivate> dataPtr;
+
+    /// \brief Ignition communication node.
+    private: transport::Node node;
+    private: transport::Node::Publisher pose_pub, linear_pub, angular_pub;
   };
   }
 }
