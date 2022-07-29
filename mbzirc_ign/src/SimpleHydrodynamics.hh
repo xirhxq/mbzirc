@@ -123,7 +123,7 @@ namespace systems
 
     /// \brief Ignition communication node.
     private: transport::Node node;
-    private: transport::Node::Publisher pose_pub, linear_pub, angular_pub;
+    private: transport::Node::Publisher pose_pub;
   };
   }
 }

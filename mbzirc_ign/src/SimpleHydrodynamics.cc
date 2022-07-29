@@ -137,10 +137,6 @@ void SimpleHydrodynamics::Configure(const Entity &_entity,
       topicName = _sdf->Get<std::string>("topic_name");
   }
 
-  std::string linpubtopic{"model/" + topicName + "/world_vel/linear"};         
-  this->linear_pub = node.Advertise<ignition::msgs::Vector3d>(linpubtopic);
-  std::string angpubtopic{"model/" + topicName + "/world_vel/angular"};         
-  this->angular_pub = node.Advertise<ignition::msgs::Vector3d>(angpubtopic);
   std::string posepubtopic{"model/" + topicName + "/world_pose"};
   this->pose_pub = node.Advertise<ignition::msgs::Pose>(posepubtopic);
 
@@ -269,18 +265,6 @@ void SimpleHydrodynamics::PreUpdate(
   pose_qua->set_w(pose_rot.W());
   pose.set_allocated_orientation(pose_qua);
   pose_pub.Publish(pose);
-
-  ignition::msgs::Vector3d lin_vel;
-  lin_vel.set_x(worldLinearVel->X());
-  lin_vel.set_y(worldLinearVel->Y());
-  lin_vel.set_z(worldLinearVel->Z());
-  linear_pub.Publish(lin_vel);
-
-  ignition::msgs::Vector3d ang_vel;
-  ang_vel.set_x(worldAngularVel->X());
-  ang_vel.set_y(worldAngularVel->Y());
-  ang_vel.set_z(worldAngularVel->Z());
-  angular_pub.Publish(ang_vel);
 
   stateDot << localLinearAccel.X(), localLinearAccel.Y(), localLinearAccel.Z(),
    localAngularAccel.X(), localAngularAccel.Y(), localAngularAccel.Z();
