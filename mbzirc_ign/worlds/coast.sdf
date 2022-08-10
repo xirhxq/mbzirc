@@ -1471,7 +1471,7 @@
         <size>75 50 10</size>
       </start_area>
       <target>
-        <vessel>Vessel B</vessel>
+        <vessel>Vessel E</vessel>
         <small_object>small_case_b</small_object>
         <small_object>small_case_b_duplicate</small_object>
         <large_object>large_grey_box_b</large_object>
