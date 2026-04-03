@@ -35,3 +35,31 @@
 
 # Python objects
 *.pyc
+
+# Build directories
+build/
+**/build/
+
+# Claude Code local configuration
+.claude/
+
+# Local documentation (not for git)
+docs/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Generated model files (runtime only)
+mbzirc_ign/models/sensors/*_slot*/
+
+# Test/runtime artifacts
+*.log
+logs/
