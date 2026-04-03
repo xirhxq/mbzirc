@@ -48,6 +48,10 @@ ARMS = [
     'mbzirc_oberon7_arm',
 ]
 
+GIMBAL_CAMERAS = [
+    'mbzirc_gimbal_camera',
+]
+
 GRIPPERS = [
     'mbzirc_oberon7_gripper',
     'mbzirc_suction_gripper',
@@ -85,6 +89,13 @@ class Model:
 
     def has_valid_gripper(self):
         return self.gripper in GRIPPERS
+
+    def has_gimbal_camera_payload(self):
+        """Check if any payload slot contains a gimbal camera."""
+        for slot, payload in self.payload.items():
+            if payload['sensor'] in GIMBAL_CAMERAS:
+                return True
+        return False
 
     def bridges(self, world_name):
         custom_launches = []
@@ -329,14 +340,68 @@ class Model:
             'models', self.model_type, 'model.sdf.erb')
 
         model_dir = os.path.join(get_package_share_directory('mbzirc_ign'), 'models')
-        model_tmp_dir = os.path.join(model_dir, 'tmp')
+
+        # Process gimbal camera payloads first - generate unique models with topic_prefix
+        gimbal_payload_map = {}  # Maps original slot -> generated model path
+        for (slot, payload) in self.payload.items():
+            if payload['sensor'] and payload['sensor'] != 'None':
+                if payload['sensor'] in GIMBAL_CAMERAS:
+                    index = int(slot[-1])
+                    gimbal_model_name = payload['sensor']
+                    gimbal_model_file = os.path.join(model_dir, 'sensors',
+                                                     gimbal_model_name, 'model.sdf.erb')
+                    # Generate unique model name for this gimbal instance
+                    unique_gimbal_name = f'{gimbal_model_name}_{self.model_name}_slot{index}'
+                    # Put it in sensors directory so model://sensors/ URI works
+                    gimbal_model_output_file = os.path.join(model_dir, 'sensors',
+                                                             unique_gimbal_name, 'model.sdf')
+                    gimbal_command = ['erb']
+                    topic_prefix = f'{self.model_name}'
+                    gimbal_command.append(f'topic_prefix={topic_prefix}')
+                    gimbal_command.append(gimbal_model_file)
+
+                    # Create unique gimbal model in mbzirc_ign/models/sensors
+                    gimbal_output_dir = os.path.dirname(gimbal_model_output_file)
+                    if os.path.exists(gimbal_output_dir):
+                        shutil.rmtree(gimbal_output_dir)
+                    pathlib.Path(gimbal_output_dir).mkdir(parents=True, exist_ok=True)
+
+                    # Create symlinks for meshes if they exist
+                    gimbal_source_dir = os.path.join(model_dir, 'sensors', gimbal_model_name)
+                    meshes_dir = os.path.join(gimbal_source_dir, 'meshes')
+                    if os.path.exists(meshes_dir):
+                        os.symlink(meshes_dir, os.path.join(gimbal_output_dir, 'meshes'))
+
+                    # Copy model.config (no need to modify the display name)
+                    model_config_src = os.path.join(gimbal_source_dir, 'model.config')
+                    if os.path.exists(model_config_src):
+                        shutil.copy(model_config_src, os.path.join(gimbal_output_dir, 'model.config'))
+
+                    # Run erb to generate new model.sdf file
+                    process = subprocess.Popen(gimbal_command, stdout=subprocess.PIPE)
+                    stdout = process.communicate()[0]
+                    str_output = codecs.getdecoder('unicode_escape')(stdout)[0]
+                    # Update model name in SDF
+                    str_output = str_output.replace(
+                            f'<model name="{gimbal_model_name}">',
+                            f'<model name="{unique_gimbal_name}">')
+                    with open(gimbal_model_output_file, 'w') as f:
+                        f.write(str_output)
+
+                    # Store mapping for later use in command
+                    # Use just the model name (without model://sensors/ prefix)
+                    gimbal_payload_map[slot] = unique_gimbal_name
 
         command = ['erb']
         command.append(f'name={self.model_name}')
 
         for (slot, payload) in self.payload.items():
             if payload['sensor'] and payload['sensor'] != 'None':
-                command.append(f"{slot}={payload['sensor']}")
+                # Use generated model path if this is a gimbal camera
+                if slot in gimbal_payload_map:
+                    command.append(f"{slot}={gimbal_payload_map[slot]}")
+                else:
+                    command.append(f"{slot}={payload['sensor']}")
             if 'rpy' in payload:
                 if type(payload['rpy']) is str:
                     r, p, y = payload['rpy'].split(' ')

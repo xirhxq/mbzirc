@@ -271,3 +271,36 @@ def stream_status():
         ign_type='ignition.msgs.StringMsg',
         ros_type='std_msgs/msg/String',
         direction=BridgeDirection.IGN_TO_ROS)
+
+
+def gimbal_joint_position(world_name, model_name, joint_name, slot_idx):
+    """Bridge for gimbal joint position command (ROS -> Ignition)."""
+    # Use absolute world-level topic for unique namespace per vehicle
+    return Bridge(
+        ign_topic=f'/{model_name}/gimbal/{joint_name}/cmd',
+        ros_topic=f'slot{slot_idx}/gimbal/{joint_name}/target_angle',
+        ign_type='ignition.msgs.Double',
+        ros_type='std_msgs/msg/Float64',
+        direction=BridgeDirection.ROS_TO_IGN)
+
+
+def gimbal_joint_states(world_name, model_name, slot_idx):
+    """Bridge for gimbal joint state feedback (Ignition -> ROS)."""
+    # Use absolute world-level topic for unique namespace per vehicle
+    return Bridge(
+        ign_topic=f'/{model_name}/gimbal/joint_states',
+        ros_topic=f'slot{slot_idx}/gimbal/joint_states',
+        ign_type='ignition.msgs.Model',
+        ros_type='sensor_msgs/msg/JointState',
+        direction=BridgeDirection.IGN_TO_ROS)
+
+
+def gimbal_set_hfov(world_name, model_name, slot_idx):
+    """Bridge for gimbal HFOV (zoom) control (ROS -> Ignition)."""
+    # Use absolute world-level topic for unique namespace per vehicle
+    return Bridge(
+        ign_topic=f'/{model_name}/gimbal/set_hfov',
+        ros_topic=f'slot{slot_idx}/gimbal/set_hfov',
+        ign_type='ignition.msgs.Double',
+        ros_type='std_msgs/msg/Float64',
+        direction=BridgeDirection.ROS_TO_IGN)

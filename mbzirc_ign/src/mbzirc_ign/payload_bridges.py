@@ -4,7 +4,8 @@ from mbzirc_ign.bridge import Bridge, BridgeDirection
 def camera_models():
     models = ['mbzirc_vga_camera',
               'mbzirc_hd_camera',
-              'mbzirc_hd_long_range_camera']
+              'mbzirc_hd_long_range_camera',
+              'mbzirc_gimbal_camera']
     return models
 
 
@@ -119,9 +120,47 @@ def rfranger(world_name, model_name, slot_idx, model_prefix=''):
         direction=BridgeDirection.IGN_TO_ROS)
 
 
+def gimbal_camera_bridges(world_name, model_name, slot_idx, model_prefix=''):
+    """Create all bridges for the gimbal camera.
+
+    Includes camera image, camera_info, gimbal velocity control, and zoom.
+
+    Args:
+        world_name: Name of the Ignition world
+        model_name: Name of the vehicle model
+        slot_idx: Slot index where gimbal is attached
+        model_prefix: Optional prefix for nested models
+
+    Returns:
+        List of Bridge configurations
+    """
+    from mbzirc_ign import bridges
+    bridges_list = []
+
+    # Standard camera bridges (image + camera_info)
+    bridges_list.extend([
+        image(world_name, model_name, slot_idx, model_prefix),
+        camera_info(world_name, model_name, slot_idx, model_prefix)
+    ])
+
+    # Gimbal-specific bridges (position control + zoom)
+    bridges_list.extend([
+        bridges.gimbal_joint_position(world_name, model_name, 'pitch', slot_idx),
+        bridges.gimbal_joint_position(world_name, model_name, 'yaw', slot_idx),
+        bridges.gimbal_joint_states(world_name, model_name, slot_idx),
+        bridges.gimbal_set_hfov(world_name, model_name, slot_idx)
+    ])
+
+    return bridges_list
+
+
 def payload_bridges(world_name, model_name, payload, idx, model_prefix=''):
     bridges = []
     if payload in camera_models():
+        # Check if this is a gimbal camera
+        if payload == 'mbzirc_gimbal_camera':
+            return gimbal_camera_bridges(world_name, model_name, idx, model_prefix)
+        # Standard camera bridges
         bridges = [
             image(world_name, model_name, idx, model_prefix),
             camera_info(world_name, model_name, idx, model_prefix)
